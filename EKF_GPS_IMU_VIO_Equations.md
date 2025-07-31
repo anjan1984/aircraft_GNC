@@ -71,6 +71,8 @@ P_{k+1} = F P_k F^T + Q
 
 ### GPS Update
 
+GPS update: 
+
 $$\left( 
 z_{gps} =
 \begin{bmatrix}
@@ -98,6 +100,8 @@ I_{3x3} & 0 & 0 & 0 & 0 \\
 \right)$$
 
 ### VIO Update
+
+update
 
 $$\left( 
 z_{vio} =
