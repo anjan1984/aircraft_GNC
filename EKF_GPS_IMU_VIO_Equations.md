@@ -73,7 +73,9 @@ P_{k+1} = F P_k F^T + Q
 
 GPS update: 
 
-$$\left( 
+
+
+$$\left(
 z_{gps} =
 \begin{bmatrix}
 p \\ v
@@ -84,14 +86,14 @@ p \\ v
 
 Residual:
 
-$$\left( 
+$$\left(
 y = z_{gps} - H_{gps} x
 \right)$$
 
 
 Jacobian:
 
-$$\left( 
+$$\left(
 H_{gps} =
 \begin{bmatrix}
 I_{3x3} & 0 & 0 & 0 & 0 \\
@@ -99,11 +101,12 @@ I_{3x3} & 0 & 0 & 0 & 0 \\
 \end{bmatrix}
 \right)$$
 
+
 ### VIO Update
 
 update
 
-$$\left( 
+$$\left(
 z_{vio} =
 \begin{bmatrix}
 \Delta p \\ \Delta \theta
