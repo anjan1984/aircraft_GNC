@@ -1,18 +1,19 @@
 import numpy as np
+import matplotlib.pyplot as plt
 from scipy.spatial.transform import Rotation as R
 
 class GPSIMU_VIO_EKF:
     def __init__(self, dt=0.01):
         self.dt = dt
-        self.x = np.zeros(16)   # [pos(3), vel(3), quat(4), acc_bias(3), gyro_bias(3)]
-        self.x[6] = 1.0         # quaternion init
+        # State: [pos(3), vel(3), quat(4), acc_bias(3), gyro_bias(3)]
+        self.x = np.zeros(16)
+        self.x[6] = 1.0  # quaternion init
         self.P = np.eye(16) * 0.1
         self.Q = np.eye(16) * 0.01
         self.R_gps = np.eye(6) * 2.0
         self.R_vio = np.diag([0.1, 0.1, 0.1,   # Δpos
                               0.01, 0.01, 0.01])  # Δatt
-
-        self.g = np.array([0, 0, -9.81])
+        self.g = np.array([0, 0, -9.81])  # gravity
 
     def normalize_quat(self, q):
         return q / np.linalg.norm(q)
@@ -32,7 +33,7 @@ class GPSIMU_VIO_EKF:
         quat_new = self.normalize_quat(quat_new.as_quat())
         R_nav = R.from_quat(quat_new).as_matrix()
 
-        # Update vel & pos
+        # Update velocity and position
         accel_nav = R_nav @ accel + self.g
         vel_new = vel + accel_nav * dt
         pos_new = pos + vel * dt + 0.5 * accel_nav * dt**2
@@ -47,8 +48,8 @@ class GPSIMU_VIO_EKF:
 
     def update_gps(self, gps_pos, gps_vel):
         H = np.zeros((6, 16))
-        H[0:3, 0:3] = np.eye(3)  # pos
-        H[3:6, 3:6] = np.eye(3)  # vel
+        H[0:3, 0:3] = np.eye(3)  # position
+        H[3:6, 3:6] = np.eye(3)  # velocity
 
         z = np.concatenate([gps_pos, gps_vel])
         y = z - H @ self.x
@@ -60,9 +61,9 @@ class GPSIMU_VIO_EKF:
         self.x[6:10] = self.normalize_quat(self.x[6:10])
 
     def update_vio(self, delta_pos, delta_att):
-        # Measurement residual
+        # Innovation: measured - predicted relative motion
         pred_delta_pos = self.x[3:6] * self.dt
-        pred_delta_att = np.zeros(3)  # approx (gyro bias drives error)
+        pred_delta_att = np.zeros(3)  # approx: drift due to gyro bias
         y = np.concatenate([delta_pos - pred_delta_pos,
                             delta_att - pred_delta_att])
 
@@ -79,26 +80,48 @@ class GPSIMU_VIO_EKF:
         self.x[6:10] = self.normalize_quat(self.x[6:10])
 
 # -------------------------
-# Example Usage
+# Simulation
 # -------------------------
 ekf = GPSIMU_VIO_EKF(dt=0.01)
+timesteps = 2000
+positions = []
+gps_positions = []
 
-for t in range(1000):
-    accel_meas = np.array([0.0, 0.0, 0.0])
-    gyro_meas = np.array([0.0, 0.0, 0.01])
+for t in range(timesteps):
+    # IMU prediction
+    accel_meas = np.array([0.01, 0.0, 0.0])  # small forward accel
+    gyro_meas = np.array([0.0, 0.0, 0.001])  # small yaw rate
     ekf.predict(accel_meas, gyro_meas)
 
-    if t % 200 == 0:  # GPS update
+    # GPS update every 200 steps
+    if t % 200 == 0:
         gps_pos = ekf.x[0:3] + np.random.randn(3) * 2
         gps_vel = ekf.x[3:6] + np.random.randn(3) * 0.5
         ekf.update_gps(gps_pos, gps_vel)
+        gps_positions.append(gps_pos)
+    else:
+        gps_positions.append(np.array([np.nan, np.nan, np.nan]))
 
-    if t % 50 == 0:  # VIO update more frequent
-        delta_pos = np.array([0.1, 0.0, 0.0]) + np.random.randn(3) * 0.01
-        delta_att = np.array([0.0, 0.0, 0.001]) + np.random.randn(3) * 0.0005
+    # VIO update every 50 steps
+    if t % 50 == 0:
+        delta_pos = np.array([0.05, 0.0, 0.0]) + np.random.randn(3) * 0.01
+        delta_att = np.array([0.0, 0.0, 0.0005]) + np.random.randn(3) * 0.0002
         ekf.update_vio(delta_pos, delta_att)
 
-    if t % 200 == 0:
-        quat = ekf.x[6:10]
-        rpy = R.from_quat(quat).as_euler('xyz', degrees=True)
-        print(f"t={t*ekf.dt:.1f}s | Pos={ekf.x[0:3]} | RPY={rpy}")
+    positions.append(ekf.x[0:3])
+
+positions = np.array(positions)
+gps_positions = np.array(gps_positions)
+
+# -------------------------
+# Plot Results
+# -------------------------
+plt.figure(figsize=(10,6))
+plt.plot(positions[:,0], positions[:,1], label="EKF Trajectory (GPS+VIO)")
+plt.scatter(gps_positions[:,0], gps_positions[:,1], c='red', marker='x', label="GPS Measurements")
+plt.xlabel("X Position [m]")
+plt.ylabel("Y Position [m]")
+plt.title("Aircraft Trajectory with EKF Fusing GPS and VIO")
+plt.legend()
+plt.grid(True)
+plt.show()
