@@ -70,6 +70,7 @@ P_{k+1} = F P_k F^T + Q
 ## 📌 Measurement Models
 
 ### GPS Update
+
 $$\left( 
 z_{gps} =
 \begin{bmatrix}
@@ -78,12 +79,16 @@ p \\ v
 + \nu_{gps}
 \right)$$
 
+
 Residual:
+
 $$\left( 
 y = z_{gps} - H_{gps} x
 \right)$$
 
+
 Jacobian:
+
 $$\left( 
 H_{gps} =
 \begin{bmatrix}
@@ -93,6 +98,7 @@ I_{3x3} & 0 & 0 & 0 & 0 \\
 \right)$$
 
 ### VIO Update
+
 $$\left( 
 z_{vio} =
 \begin{bmatrix}
@@ -102,6 +108,7 @@ z_{vio} =
 \right)$$
 
 Residual:
+
 $$\left( 
 y = z_{vio} - h(x)
 \right)$$
