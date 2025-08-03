@@ -144,13 +144,14 @@ def simulate_tracking(traj_coeffs, segment_times, total_time, dt):
 
 def main():
     waypoints = {
-        0: np.array([0.0, 0.0, 0.0]),
-        1: np.array([0.0, 0.0, 50.0]),
-        2: np.array([100.0, 0.0, 50.0]),
-        3: np.array([1000.0, 0.0, 50.0]),
-        4: np.array([1050.0, 0.0, 0.0])
+        0: np.array([0.0,   0.0,  0.0]),   # Takeoff start
+        1: np.array([0.0,   0.0, 30.0]),   # Climb to 50m
+        2: np.array([100.0, 0.0, 50.0]),   # Transition
+        3: np.array([1000.0,0.0, 50.0]),   # Cruise
+        4: np.array([1050.0,0.0, 30.0]),   # Cruise
+        5: np.array([1100.0,0.0,  0.0])    # Landing
     }
-    segment_times = [10, 20, 80, 10]
+    segment_times = [10, 30, 100, 30, 20]
 
     velocities = compute_continuous_velocities(waypoints, segment_times)
     traj_coeffs = build_trajectory_with_velocity_continuity(waypoints, segment_times, velocities)
